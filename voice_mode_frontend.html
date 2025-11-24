@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Mode - AI Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .voice-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* Animated Background Elements */
+        .floating-shapes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .shape:nth-child(1) {
+            width: 200px;
+            height: 200px;
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .shape:nth-child(2) {
+            width: 150px;
+            height: 150px;
+            top: 60%;
+            right: 10%;
+            animation-delay: 2s;
+        }
+
+        .shape:nth-child(3) {
+            width: 100px;
+            height: 100px;
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        /* Header */
+        .voice-header {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: slideDown 1s ease-out;
+        }
+
+        .voice-header h1 {
+            color: #00d4ff;
+            font-size: 3.5em;
+            margin-bottom: 15px;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+            background: linear-gradient(45deg, #00d4ff, #00a8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        .voice-header p {
+            color: #a0a0a0;
+            font-size: 1.2em;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 0.5s forwards;
+        }
+
+        /* Voice Circle */
+        .voice-circle {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+            border: 3px solid rgba(0, 212, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin-bottom: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .voice-circle:hover {
+            transform: scale(1.05);
+            border-color: rgba(0, 212, 255, 0.6);
+            box-shadow: 0 0 50px rgba(0, 212, 255, 0.3);
+        }
+
+        .voice-circle.listening {
+            animation: listeningPulse 0.8s ease-in-out infinite;
+            border-color: #ff3b30;
+            background: radial-gradient(circle, rgba(255, 59, 48, 0.2) 0%, transparent 70%);
+        }
+
+        .voice-icon {
+            font-size: 4em;
+            color: #00d4ff;
+            transition: all 0.3s ease;
+        }
+
+        .voice-circle.listening .voice-icon {
+            color: #ff3b30;
+            animation: bounce 0.5s ease-in-out infinite;
+        }
+
+        /* Sound Waves Animation */
+        .sound-waves {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .sound-wave {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 50%;
+            animation: soundWave 2s ease-out infinite;
+        }
+
+        .sound-wave:nth-child(2) { animation-delay: 0.4s; }
+        .sound-wave:nth-child(3) { animation-delay: 0.8s; }
+
+        .voice-circle.listening .sound-waves {
+            opacity: 1;
+        }
+
+        /* Status Text */
+        .status-text {
+            text-align: center;
+            margin-bottom: 30px;
+            min-height: 60px;
+        }
+
+        .status {
+            font-size: 1.5em;
+            color: #00d4ff;
+            margin-bottom: 10px;
+            opacity: 0;
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        .transcript {
+            font-size: 1.2em;
+            color: #a0a0a0;
+            min-height: 30px;
+            opacity: 0;
+            animation: fadeInUp 0.5s ease-out 0.2s forwards;
+        }
+
+        /* Commands Panel */
+        .commands-panel {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 25px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+            width: 100%;
+            opacity: 0;
+            animation: slideUp 1s ease-out 0.8s forwards;
+        }
+
+        .commands-panel h3 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            text-align: center;
+        }
+
+        .command-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .command-item {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            padding: 12px 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .command-item:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.2);
+        }
+
+        /* Back Button */
+        .back-button {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e0e0e0;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            animation: fadeIn 1s ease-out 1s forwards;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(-5px);
+        }
+
+        /* Animations */
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        @keyframes listeningPulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4);
+            }
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 0 0 0 20px rgba(255, 59, 48, 0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        @keyframes soundWave {
+            0% { 
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            100% { 
+                transform: translate(-50%, -50%) scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px rgba(0, 212, 255, 0.5); }
+            to { text-shadow: 0 0 30px rgba(0, 212, 255, 0.8), 0 0 40px rgba(0, 212, 255, 0.6); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .voice-header h1 {
+                font-size: 2.5em;
+            }
+            
+            .voice-circle {
+                width: 250px;
+                height: 250px;
+            }
+            
+            .command-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .back-button {
+                top: 20px;
+                left: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="voice-container">
+        <!-- Animated Background -->
+        <div class="floating-shapes">
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+        </div>
+
+        <!-- Back Button -->
+        <a href="/" class="back-button">← Back to Main</a>
+
+        <!-- Header -->
+        <div class="voice-header">
+            <h1>🎙️ Voice Mode</h1>
+            <p>Click the microphone and start speaking naturally</p>
+        </div>
+
+        <!-- Voice Circle -->
+        <div class="voice-circle" id="voiceCircle">
+            <div class="sound-waves">
+                <div class="sound-wave"></div>
+                <div class="sound-wave"></div>
+                <div class="sound-wave"></div>
+            </div>
+            <div class="voice-icon" id="voiceIcon">🎤</div>
+        </div>
+
+        <!-- Status Display -->
+        <div class="status-text">
+            <div class="status" id="status">Ready to listen</div>
+            <div class="transcript" id="transcript"></div>
+        </div>
+
+        <!-- Commands Panel -->
+        <div class="commands-panel">
+            <h3>Try These Voice Commands</h3>
+            <div class="command-list">
+                <div class="command-item" onclick="sendQuickCommand('search AI news')">🔍 Search AI news</div>
+                <div class="command-item" onclick="sendQuickCommand('calculate 15 times 3')">🧮 Calculate 15×3</div>
+                <div class="command-item" onclick="sendQuickCommand('note buy milk and eggs')">📝 Note: buy milk</div>
+                <div class="command-item" onclick="sendQuickCommand('what time is it')">🕒 Current time</div>
+                <div class="command-item" onclick="sendQuickCommand('open google')">🌐 Open Google</div>
+                <div class="command-item" onclick="sendQuickCommand('tell me a joke')">😄 Tell me a joke</div>
+                <div class="command-item" onclick="sendQuickCommand('how are you')">💬 How are you?</div>
+                <div class="command-item" onclick="sendQuickCommand('read notes')">📒 Read notes</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isListening = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        
+        const voiceCircle = document.getElementById('voiceCircle');
+        const voiceIcon = document.getElementById('voiceIcon');
+        const status = document.getElementById('status');
+        const transcript = document.getElementById('transcript');
+
+        // Update status with animation
+        function updateStatus(newStatus, isError = false) {
+            status.style.animation = 'none';
+            status.offsetHeight; // Trigger reflow
+            status.textContent = newStatus;
+            status.style.color = isError ? '#ff3b30' : '#00d4ff';
+            status.style.animation = 'fadeInUp 0.5s ease-out';
+        }
+
+        // Update transcript with animation
+        function updateTranscript(text) {
+            transcript.style.animation = 'none';
+            transcript.offsetHeight; // Trigger reflow
+            transcript.textContent = text;
+            transcript.style.animation = 'fadeInUp 0.5s ease-out';
+        }
+
+        // Show response from assistant
+        function showAssistantResponse(response) {
+            updateStatus('Assistant responding...');
+            updateTranscript(response);
+            
+            // Speak the response
+            fetch('/speak', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: response })
+            });
+        }
+
+        // Send quick command
+        function sendQuickCommand(command) {
+            updateStatus('Processing command...');
+            updateTranscript(command);
+            
+            fetch('/process', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: command })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    showAssistantResponse(data.response);
+                }
+            })
+            .catch(error => {
+                updateStatus('Error processing command', true);
+                updateTranscript('Could not connect to assistant');
+            });
+        }
+
+        // Voice recording functions
+        async function startListening() {
+            try {
+                updateStatus('Starting microphone...');
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = async () => {
+                    updateStatus('Processing speech...');
+                    
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const formData = new FormData();
+                    formData.append('audio', audioBlob);
+                    
+                    try {
+                        const response = await fetch('/speech-to-text', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.text && data.text.trim()) {
+                            updateTranscript(data.text);
+                            updateStatus('Sending to assistant...');
+                            
+                            // Process the command
+                            const processResponse = await fetch('/process', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ text: data.text })
+                            });
+                            
+                            const processData = await processResponse.json();
+                            
+                            if (processData.response) {
+                                showAssistantResponse(processData.response);
+                            }
+                        } else {
+                            updateStatus('No speech detected', true);
+                            updateTranscript('Please try speaking again');
+                        }
+                    } catch (error) {
+                        updateStatus('Error processing voice', true);
+                        updateTranscript('Could not understand speech');
+                    }
+                    
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                
+                mediaRecorder.start();
+                isListening = true;
+                voiceCircle.classList.add('listening');
+                voiceIcon.textContent = '🔴';
+                updateStatus('Listening... Speak now');
+                updateTranscript('');
+                
+            } catch (error) {
+                console.error('Error starting voice recording:', error);
+                updateStatus('Microphone access denied', true);
+                updateTranscript('Please allow microphone permissions');
+            }
+        }
+        
+        function stopListening() {
+            if (mediaRecorder && isListening) {
+                mediaRecorder.stop();
+                isListening = false;
+                voiceCircle.classList.remove('listening');
+                voiceIcon.textContent = '🎤';
+                updateStatus('Processing...');
+            }
+        }
+        
+        // Event listeners
+        voiceCircle.addEventListener('click', () => {
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        });
+
+        // Auto-stop after 10 seconds of listening
+        setInterval(() => {
+            if (isListening) {
+                stopListening();
+            }
+        }, 10000);
+
+        // Initialize with welcome message
+        setTimeout(() => {
+            updateStatus('Voice Mode Active');
+            updateTranscript('Click the microphone to start speaking');
+        }, 1000);
+    </script>
+</body>
+</html>
